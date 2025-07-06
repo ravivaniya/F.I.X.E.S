@@ -1,0 +1,96 @@
+name: Auto-Fix Code Scanning Issues
+
+on:
+  schedule:
+    # Run every 6 hours
+    - cron: "0 */6 * * *"
+  workflow_dispatch:
+    inputs:
+      force_run:
+        description: "Force run even if no new issues"
+        required: false
+        default: "false"
+      target_path:
+        description: "Specific path to fix (optional)"
+        required: false
+
+jobs:
+  detect-and-fix:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      security-events: read
+      actions: read
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "18"
+
+      - name: Install Dependencies
+        run: |
+          npm install -g @octokit/rest
+          npm install js-yaml axios
+
+      - name: Load Configuration
+        id: config
+        run: |
+          node -e "
+            const yaml = require('js-yaml');
+            const fs = require('fs');
+            const config = yaml.load(fs.readFileSync('auto-fix-config.yml', 'utf8'));
+            console.log('CONFIG=' + JSON.stringify(config));
+          " >> $GITHUB_OUTPUT
+
+      - name: Fetch Code Scanning Issues
+        id: fetch-issues
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/fetch-scanning-issues.js
+
+      - name: Generate Fixes with Copilot
+        id: generate-fixes
+        if: steps.fetch-issues.outputs.has_issues == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          COPILOT_TOKEN: ${{ secrets.COPILOT_TOKEN }}
+        run: |
+          node scripts/generate-fixes.js
+
+      - name: Create Pull Request
+        id: create-pr
+        if: steps.generate-fixes.outputs.fixes_applied == 'true'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          node scripts/create-pr.js
+
+      - name: Send Teams Notification
+        if: steps.create-pr.outputs.pr_created == 'true'
+        env:
+          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+          PR_URL: ${{ steps.create-pr.outputs.pr_url }}
+          PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
+        run: |
+          node scripts/send-teams-notification.js
+
+  monitor-pr-approval:
+    needs: detect-and-fix
+    runs-on: ubuntu-latest
+    if: needs.detect-and-fix.outputs.pr_created == 'true'
+
+    steps:
+      - name: Monitor PR for Approval
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          PR_NUMBER: ${{ needs.detect-and-fix.outputs.pr_number }}
+        run: |
+          node scripts/monitor-pr-approval.js

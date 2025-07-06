@@ -1,0 +1,47 @@
+auto_fix_settings:
+  enabled: true
+
+  filters:
+    languages:
+      - "javascript"
+      - "typescript"
+
+    tools:
+      - "eslint"
+      - "codeql"
+
+    rules:
+      include:
+        - "@typescript-eslint/no-unused-expressions"
+        - "@typescript-eslint/no-unused-vars"
+        - "@typescript-eslint/no-explicit-any"
+        - "no-console"
+        - "prefer-const"
+        - "no-var"
+      exclude:
+        - "react-hooks/exhaustive-deps"
+
+    severity:
+      - "error"
+      - "warning"
+
+    paths:
+      include:
+        - "src/**"
+      exclude:
+        - "tests/**"
+        - "node_modules/**"
+        - ".next/**"
+
+  pr_settings:
+    branch_prefix: "auto-fix"
+    title_prefix: "🤖 Auto-fix:"
+    auto_merge_after_approval: true
+    require_admin_approval: true
+    reviewers:
+      - "admin-team"
+
+  teams_settings:
+    webhook_url: "${TEAMS_WEBHOOK_URL}"
+    mention_users:
+      - "admin@company.com"
