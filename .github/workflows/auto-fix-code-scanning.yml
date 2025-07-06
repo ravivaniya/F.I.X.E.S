@@ -73,14 +73,14 @@ jobs:
         run: |
           node scripts/create-pr.js
 
-      - name: Send Teams Notification
-        if: steps.create-pr.outputs.pr_created == 'true'
-        env:
-          TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
-          PR_URL: ${{ steps.create-pr.outputs.pr_url }}
-          PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
-        run: |
-          node scripts/send-teams-notification.js
+      # - name: Send Teams Notification
+      #   if: steps.create-pr.outputs.pr_created == 'true'
+      #   env:
+      #     TEAMS_WEBHOOK_URL: ${{ secrets.TEAMS_WEBHOOK_URL }}
+      #     PR_URL: ${{ steps.create-pr.outputs.pr_url }}
+      #     PR_NUMBER: ${{ steps.create-pr.outputs.pr_number }}
+      #   run: |
+      #     node scripts/send-teams-notification.js
 
   monitor-pr-approval:
     needs: detect-and-fix

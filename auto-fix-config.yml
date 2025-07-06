@@ -41,7 +41,7 @@ auto_fix_settings:
     reviewers:
       - "admin-team"
 
-  teams_settings:
-    webhook_url: "${TEAMS_WEBHOOK_URL}"
-    mention_users:
-      - "admin@company.com"
+  # teams_settings:
+  #   webhook_url: "${TEAMS_WEBHOOK_URL}"
+  #   mention_users:
+  #     - "admin@company.com"
