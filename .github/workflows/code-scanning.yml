@@ -47,6 +47,9 @@ jobs:
         with:
           category: "/language:${{matrix.language}}"
 
+      - name: Install ESLint TypeScript dependencies
+        run: npm install --save-dev @typescript-eslint/eslint-plugin @typescript-eslint/parser
+
       - name: Run ESLint
         run: |
           npm run lint -- --format @microsoft/eslint-formatter-sarif --output-file eslint-results.sarif
@@ -57,3 +60,22 @@ jobs:
         with:
           sarif_file: eslint-results.sarif
         if: always()
+
+      - name: Check if SARIF file exists
+        id: check-sarif
+        run: |
+          if [ -f eslint-results.sarif ]; then
+            echo "sarif-exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "sarif-exists=false" >> $GITHUB_OUTPUT
+            echo "Creating empty SARIF file"
+            echo '{"version": "2.1.0", "runs": []}' > eslint-results.sarif
+          fi
+
+      - name: Upload SARIF file
+        if: steps.check-sarif.outputs.sarif-exists == 'true' || always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: eslint-results.sarif
+          checkout_path: /home/runner/work/F.I.X.E.S/F.I.X.E.S
+          wait-for-processing: true
